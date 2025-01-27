@@ -31,8 +31,8 @@ table = dynamodb.Table('recipes')
 
 # Configure CORS
 origins = [
-    "https://www.cloudspace-consulting.com",  
-    "http://localhost:3000",
+    "*", 
+    
 ]
 
 app = FastAPI(title="Recipe Sharing API")
