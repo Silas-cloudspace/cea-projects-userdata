@@ -6,28 +6,21 @@ from typing import List
 import uuid
 import boto3
 
-
-class Ingredient(BaseModel):
-    id: int
-    description: str
-
 class Step(BaseModel):
     id: int
     description: str
 
-class Recipe(BaseModel):
+class Project(BaseModel):
     id:str
     title: str
-    ingredients: List[Ingredient]
     steps: List[Step]
 
 session = boto3.Session(
-
        region_name='SELECTED_REGION'
    )
 
 dynamodb = session.resource('dynamodb')
-table = dynamodb.Table('recipes')
+table = dynamodb.Table('projects')
 
 # Configure CORS
 origins = [
@@ -35,7 +28,7 @@ origins = [
     
 ]
 
-app = FastAPI(title="Recipe Sharing API")
+app = FastAPI(title="Project Sharing API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -51,51 +44,46 @@ app.add_middleware(
 async def health_check():
     return {"message": "Service is healthy"}
 
-# read recipes
-@app.get("/recipes", status_code=status.HTTP_200_OK)
-async def get_all_recipes(): 
+# read projects
+@app.get("/projects", status_code=status.HTTP_200_OK)
+async def get_all_projects(): 
     try:
         response = table.scan()
-        recipes = response['Items']
+        projects = response['Items']
         while 'LastEvaluatedKey' in response:
             response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
-            recipes.extend(response['Items'])
-        recipes_list = [Recipe(**recipe) for recipe in recipes]
-        return recipes_list
+            projects.extend(response['Items'])
+        projects_list = [Project(**project) for project in projects]
+        return projects_list
     except Exception as e:
-        return {"message": f"Error retrieving recipes: {e}"}
+        return {"message": f"Error retrieving projects: {e}"}
 
 
-
-#create recipe
-@app.post("/recipes", status_code=status.HTTP_200_OK)
-async def create_recipe(recipe: Recipe):
+#create project
+@app.post("/projects", status_code=status.HTTP_200_OK)
+async def create_project(project: Project):
     try:
         table.put_item( Item={
             'id': str(uuid.uuid4()),
-            'title': recipe.title,
-            'ingredients':  [ingredient.dict() for ingredient in recipe.ingredients],
-            'steps':  [steps.dict() for steps in recipe.steps]
+            'title': project.title,
+            'steps':  [steps.dict() for steps in project.steps]
             }
             )
-        return {"message": "Recipe created successfully"}
+        return {"message": "Project created successfully"}
     except Exception as e:
-        return {"message": f"Error creating recipe: {e}"}
+        return {"message": f"Error creating project: {e}"}
 
 
 
-#delete recipe
-@app.delete("/recipes/{recipe_id}", status_code=status.HTTP_200_OK)
-async def delete_recipe(recipe_id: str):
+#delete project
+@app.delete("/projects/{project_id}", status_code=status.HTTP_200_OK)
+async def delete_project(project_id: str):
     try:
         response = table.delete_item(
             Key={
-                'id': recipe_id
+                'id': project_id
             }
         )
         return {"message":response}
     except Exception as e:
-        return {"message": f"Error deleting recipe: {e}"}
-
-
-
+        return {"message": f"Error deleting project: {e}"}
